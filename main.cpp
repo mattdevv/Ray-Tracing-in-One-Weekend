@@ -3,18 +3,20 @@
 
 #include <iostream>
 #include <inttypes.h>
+#include "color.h"
 #include "stb_image_write.h"
+
+#define STBI_DISABLE_PNG_COMPRESSION stbi_write_png_compression_level = 0;
 
 int main()
 {
+	STBI_DISABLE_PNG_COMPRESSION
+
 	int imageWidth = 256;
 	int imageHeight = 256;
-	int imageChannels = 4;
 
 	// initialise output image
-	uint8_t* image = new uint8_t[imageWidth * imageHeight * imageChannels];
-	for (int i = 0; i < imageWidth * imageHeight * imageChannels; i++)
-		image[i] = 255;
+	Color* image = new Color[imageWidth * imageHeight * Color::channels];
 
 	// create image
 	for (int y = 0; y < imageHeight; y++)
@@ -23,7 +25,7 @@ int main()
 
 		for (int x = 0; x < imageWidth; x++)
 		{
-			int pixelIndex = (x + y * imageHeight) * imageChannels;
+			int pixelIndex = (x + y * imageHeight);
 
 			double u = x / static_cast<double>(imageWidth - 1);
 			double v = y / static_cast<double>(imageHeight - 1);
@@ -32,23 +34,14 @@ int main()
 			double g = v;
 			double b = 0;
 
-			int ir = static_cast<int>(255.999 * r);
-			int ig = static_cast<int>(255.999 * g);
-			int ib = static_cast<int>(255.999 * b);
-
-			image[pixelIndex + 0] = ir;
-			image[pixelIndex + 1] = ig;
-			image[pixelIndex + 2] = ib;
+			image[pixelIndex] = Color(r, g, b);
 		}
 	}
-
-	// disable png compression
-	stbi_write_png_compression_level = 0;
-
+	
 	// write image to file
-	int pixelStride = imageChannels * sizeof(uint8_t);
+	int pixelStride = sizeof(Color);
 	int rowStride = imageWidth * pixelStride;
-	if (stbi_write_png("result.png", imageWidth, imageHeight, imageChannels, image, rowStride) == 0) {
+	if (stbi_write_png("result.png", imageWidth, imageHeight, Color::channels, image, rowStride) == 0) {
 		// error
 		return 1;
 	}
