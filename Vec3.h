@@ -139,6 +139,15 @@ inline Vec3 refract(const Vec3& uv, const Vec3& n, double etai_over_etat) {
     return r_out_perp + r_out_parallel;
 }
 
+inline Vec3 random_in_unit_disk() {
+    Vec3 p;
+
+    do { p = Vec3(RandomRange(-1, 1), RandomRange(-1, 1), 0); } 
+    while (p.lengthSquared() > 1);
+
+    return p;
+}
+
 inline Vec3 RandomPointInsideUnitSphere() {
     Vec3 p;
 

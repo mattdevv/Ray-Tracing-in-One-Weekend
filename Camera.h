@@ -18,6 +18,9 @@ public:
 	Point3 lookat = Point3(0, 0, 0);		// Point camera is looking at
 	Vec3   vup = Vec3(0, 1, 0);				// Camera-relative "up" direction
 
+	double defocusAngle = 0;				// Variation angle of rays through each pixel
+	double focusDist = 10;					// Distance from camera lookfrom point to plane of perfect focus
+
 	Camera(shared_ptr<Texture> _outputTexture) : outputTexture(_outputTexture) { }
 
 	void Render(const Hittable& world) {
@@ -63,7 +66,9 @@ private:
 	Point3 pixelTopLeft;
 	Vec3   pixelDeltaU;
 	Vec3   pixelDeltaV;
-	Vec3   u, v, w;        // Camera frame basis vectors
+	Vec3   u, v, w;			// Camera frame basis vectors
+	Vec3   defocusDiskU;	// Defocus disk horizontal radius
+	Vec3   defocusDiskV;	// Defocus disk vertical radius
 
 	shared_ptr<Texture> outputTexture;
 
@@ -74,12 +79,11 @@ private:
 		position = lookfrom;
 		
 		double aspect_ratio = imageWidth / imageHeight;
-		double focalLength = (lookfrom - lookat).length();
 
 		// Determine viewport dimensions.
 		double theta = Deg2Rad(vfov);
 		double h = tan(theta / 2);
-		double viewportHeight = 2 * h * focalLength;
+		double viewportHeight = 2 * h * focusDist;
 		double viewportWidth = viewportHeight * aspect_ratio;
 
 		// Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -96,17 +100,24 @@ private:
 		pixelDeltaV = viewportV / imageHeight;
 
 		// Calculate the location of the upper left pixel.
-		Vec3 viewportTopLeft = position - (focalLength * w) - (viewportU / 2) - (viewportV / 2);
+		Vec3 viewportTopLeft = position - (focusDist * w) - (viewportU / 2) - (viewportV / 2);
 		pixelTopLeft = viewportTopLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
+
+		// Calculate the camera defocus disk basis vectors.
+		auto defocusRadius = focusDist * tan(Deg2Rad(defocusAngle / 2));
+		defocusDiskU = u * defocusRadius;
+		defocusDiskV = v * defocusRadius;
 	}
 
 	Ray GetRay(int i, int j) const {
 		// Get a randomly sampled camera ray for the pixel at location i,j.
+		// Jitters pixelCenter for MSAA
+		// Jitters rayOrigin for depth-of-field
 
 		Vec3 pixelCenter = pixelTopLeft + (i * pixelDeltaU) + (j * pixelDeltaV);
 		Vec3 pixelSample = pixelCenter + pixelRandomOffset();
 
-		Point3 rayOrigin = position;
+		Point3 rayOrigin = (defocusAngle <= 0) ? position : defocusDiskSample();
 		Vec3 rayDirection = pixelSample - rayOrigin;
 
 		return Ray(rayOrigin, rayDirection);
@@ -117,6 +128,12 @@ private:
 		double px = RandomRange(-0.5, 0.5);
 		double py = RandomRange(-0.5, 0.5);
 		return (px * pixelDeltaU) + (py * pixelDeltaV);
+	}
+
+	Point3 defocusDiskSample() const {
+		// Returns a random point in the camera defocus disk.
+		auto p = random_in_unit_disk();
+		return position + (p[0] * defocusDiskU) + (p[1] * defocusDiskV);
 	}
 
 	Color RayColor(const Ray& r, int depth, const Hittable& world) {

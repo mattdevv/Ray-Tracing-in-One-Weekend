@@ -51,11 +51,15 @@ int main()
 
 	Camera camera(outputTexture);
 
-	// camera positioning
-	camera.vfov = 20;
+	// camera transform
 	camera.lookfrom = Point3(-2, 2, 1);
 	camera.lookat = Point3(0, 0, -1);
 	camera.vup = Vec3(0, 1, 0);
+
+	// lens settings
+	camera.vfov = 20;
+	camera.defocusAngle = 10.0;
+	camera.focusDist = 3.4;
 	
 	// render settings
 	camera.samplesPerPixel = 20;
