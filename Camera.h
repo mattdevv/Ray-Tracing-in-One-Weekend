@@ -6,6 +6,7 @@
 #include "Texture.h"
 #include "PixelColor.h"
 
+class Material;
 
 class Camera {
 public:
@@ -112,8 +113,14 @@ private:
 			return Color(0, 0, 0);
 
 		if (world.Hit(r, Interval(0.001, infinity), rec)) {
-			Vec3 bounceDir = rec.normal + RandomPointOnUnitSphere();
-			return 0.5 * RayColor(Ray(rec.position, bounceDir), depth-1, world);
+			Ray outScatteredRay;
+			Color attenuation;
+
+			if (rec.mat->scatter(r, rec, attenuation, outScatteredRay)) {
+				return attenuation * RayColor(outScatteredRay, depth - 1, world);
+			}
+
+			return Color(0, 0, 0);
 		}
 
 		Vec3 unit_direction = r.direction.normalized();

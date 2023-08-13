@@ -4,9 +4,10 @@
 #include "RTWeekend.h"
 
 #include "HittableList.h"
+#include "Material.h"
 #include "Sphere.h"
-#include "Texture.h"
 #include "Camera.h"
+#include "Texture.h"
 
 #include <iostream>
 
@@ -37,8 +38,15 @@ int main()
 
 	HittableList world;
 
-	world.add(make_shared<Sphere>(Point3(0, 0, -1), 0.5));
-	world.add(make_shared<Sphere>(Point3(0, -100.5, -1), 100));
+	auto materialGround = make_shared<Lambertian>(Color(0.8, 0.8, 0.0));
+	auto materialCenter = make_shared<Lambertian>(Color(0.7, 0.3, 0.3));
+	auto materialLeft = make_shared<Metal>(Color(0.8, 0.8, 0.8), 0.3);
+	auto materialRight = make_shared<Metal>(Color(0.8, 0.6, 0.2), 1.0);
+
+	world.add(make_shared<Sphere>(Point3(0.0, -100.5, -1.0), 100.0, materialGround));
+	world.add(make_shared<Sphere>(Point3(0.0, 0.0, -1.0), 0.5, materialCenter));
+	world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), 0.5, materialLeft));
+	world.add(make_shared<Sphere>(Point3(1.0, 0.0, -1.0), 0.5, materialRight));
 
 	Camera camera(outputTexture);
 	camera.samplesPerPixel = 20;

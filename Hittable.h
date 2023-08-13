@@ -1,11 +1,14 @@
 #pragma once
 
-#include "Ray.h"
+#include "RTWeekend.h"
 
-struct HitPoint {
+class Material;
+
+class HitPoint {
 public:
 	Point3 position;
 	Vec3 normal;
+	shared_ptr<Material> mat;
 	double t;
 	bool isFrontFace;
 

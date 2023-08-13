@@ -53,5 +53,8 @@
     <ClInclude Include="Texture.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

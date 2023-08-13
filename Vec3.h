@@ -46,6 +46,12 @@ public:
         return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
     }
 
+    bool isNearZeroLength() const {
+        // Return true if the vector is close to zero in all dimensions.
+        auto s = 1e-8;
+        return (fabs(e[0]) < s) && (fabs(e[1]) < s) && (fabs(e[2]) < s);
+    }
+
     Vec3 normalized() const {
         double invLength = (1 / this->length());
         return Vec3(e[0] * invLength, e[1] * invLength, e[2] * invLength);
@@ -120,6 +126,10 @@ inline Vec3 cross(const Vec3& u, const Vec3& v) {
 
 inline Vec3 normalize(const Vec3 v) {
     return v / v.length();
+}
+
+Vec3 reflect(const Vec3& v, const Vec3& n) {
+    return v - 2 * dot(v, n) * n;
 }
 
 inline Vec3 RandomPointInsideUnitSphere() {
