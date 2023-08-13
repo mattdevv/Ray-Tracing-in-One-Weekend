@@ -9,7 +9,33 @@
 
 #define STBI_DISABLE_PNG_COMPRESSION stbi_write_png_compression_level = 0;
 
+double hit_sphere(const Point3& center, double radius, const Ray& r) {
+	Vec3 oc = r.origin - center;
+	auto a = dot(r.direction, r.direction);
+	auto b = 2.0 * dot(oc, r.direction);
+	auto c = dot(oc, oc) - radius * radius;
+	auto discriminant = b * b - 4 * a * c;
+	
+	if (discriminant < 0) {
+		return -1.0;
+	}
+	else {
+		// distance to closest sphere intersection
+		return (-b - sqrt(discriminant)) / (2.0 * a);
+	}
+}
+
 Color rayColor(const Ray& r) {
+	double sphereRadius = 0.5;
+	Point3 spherePosition = Point3(0, 0, -1);
+
+	double t = hit_sphere(spherePosition, sphereRadius, r);
+	if (t > 0.0)
+	{
+		Vec3 N = (r.at(t) - spherePosition) / sphereRadius;
+		return 0.5 * Color(N.x() + 1, N.y() + 1, N.z() + 1);
+	}
+
 	Vec3 unit_direction = r.direction.normalized();
 	double a = unit_direction.y() * 0.5 + 0.5;
 	return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
