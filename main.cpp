@@ -10,7 +10,9 @@
 #define STBI_DISABLE_PNG_COMPRESSION stbi_write_png_compression_level = 0;
 
 Color rayColor(const Ray& r) {
-	return Color(0, 0, 0);
+	Vec3 unit_direction = r.direction.normalized();
+	double a = unit_direction.y() * 0.5 + 0.5;
+	return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
 }
 
 int main()
@@ -39,8 +41,8 @@ int main()
 	Vec3 deltaV = viewportV / imageHeight;
 
 	// Calculate the location of the upper left pixel.
-	Vec3 viewport_upper_left = cameraPosition - Vec3(0, 0, focalLength) - (viewportU / 2) - (viewportV / 2);
-	Vec3 pixel00_loc = viewport_upper_left + 0.5 * (deltaU + deltaV);
+	Vec3 viewportTopLeft = cameraPosition - Vec3(0, 0, focalLength) - (viewportU / 2) - (viewportV / 2);
+	Vec3 pixelTopLeft = viewportTopLeft + 0.5 * (deltaU + deltaV);
 
 	// initialise output image
 	PixelColor* image = new PixelColor[imageWidth * imageHeight * PixelColor::channels];
@@ -54,7 +56,7 @@ int main()
 		{
 			int pixelIndex = (x + y * imageWidth);
 
-			Vec3 pixelPosition = pixel00_loc + (x * deltaU) + (y * deltaV);
+			Vec3 pixelPosition = pixelTopLeft + (x * deltaU) + (y * deltaV);
 			Vec3 pixelDirection = pixelPosition - cameraPosition;
 
 			Ray r(cameraPosition, pixelDirection);

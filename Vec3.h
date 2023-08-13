@@ -46,13 +46,13 @@ public:
         return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
     }
 
-    void normalize() {
-        *this *= 1 / this->length();
-    }
-
-    Vec3 normalized() {
+    Vec3 normalized() const {
         double invLength = (1 / this->length());
         return Vec3(e[0] * invLength, e[1] * invLength, e[2] * invLength);
+    }
+
+    void normalize() {
+        *this *= 1 / this->length();
     }
 };
 
