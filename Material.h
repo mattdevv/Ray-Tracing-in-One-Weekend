@@ -60,9 +60,18 @@ public:
 		double refractionRatio = rec.isFrontFace ? (1.0 / IOR) : IOR;
 
 		Vec3 unitRayDir = inRay.direction.normalized();
-		Vec3 refractedDir = refract(unitRayDir, rec.normal, refractionRatio);
+		double cosTheta = fmin(dot(-unitRayDir, rec.normal), 1.0);
+		double sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-		outRay = Ray(rec.position, refractedDir);
+		bool cannot_refract = refractionRatio * sinTheta > 1.0;
+		Vec3 outDirection;
+
+		if (cannot_refract) 
+			outDirection = reflect(unitRayDir, rec.normal);
+		else 
+			outDirection = refract(unitRayDir, rec.normal, refractionRatio);
+
+		outRay = Ray(rec.position, outDirection);
 		return true;
 	}
 
