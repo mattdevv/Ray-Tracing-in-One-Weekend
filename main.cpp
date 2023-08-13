@@ -50,8 +50,17 @@ int main()
 	world.add(make_shared<Sphere>(Point3(1.0, 0.0, -1.0), 0.5, materialRight));
 
 	Camera camera(outputTexture);
+
+	// camera positioning
+	camera.vfov = 20;
+	camera.lookfrom = Point3(-2, 2, 1);
+	camera.lookat = Point3(0, 0, -1);
+	camera.vup = Vec3(0, 1, 0);
+	
+	// render settings
 	camera.samplesPerPixel = 20;
 	camera.maxRayBounces = 50;
+
 	camera.Render(world);
 	
 	if (!outputTexture->SaveToFile("output.png"))

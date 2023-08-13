@@ -10,13 +10,18 @@ class Material;
 
 class Camera {
 public:
-	int samplesPerPixel = 10;
-	int maxRayBounces = 10;   // Maximum number of ray bounces into scene
+	int samplesPerPixel = 10;				// Maximum number of light samples per pixel
+	int maxRayBounces = 10;					// Maximum number of ray bounces per sample
+
+	double vfov = 90;						// Vertical view angle (field of view)
+	Point3 lookfrom = Point3(0, 0, -1);		// Point camera is looking from
+	Point3 lookat = Point3(0, 0, 0);		// Point camera is looking at
+	Vec3   vup = Vec3(0, 1, 0);				// Camera-relative "up" direction
 
 	Camera(shared_ptr<Texture> _outputTexture) : outputTexture(_outputTexture) { }
 
 	void Render(const Hittable& world) {
-		Initialize(Point3(0, 0, 0));
+		Initialize();
 
 		int maxX = outputTexture->GetResolutionX();
 		int maxY = outputTexture->GetResolutionY();
@@ -56,33 +61,42 @@ private:
 
 	Point3 position;
 	Point3 pixelTopLeft;
-	Vec3 pixelDeltaU;
-	Vec3 pixelDeltaV;
+	Vec3   pixelDeltaU;
+	Vec3   pixelDeltaV;
+	Vec3   u, v, w;        // Camera frame basis vectors
 
 	shared_ptr<Texture> outputTexture;
 
-	void Initialize(const Point3& cameraPosition) {
+	void Initialize() {
 		double imageWidth = static_cast<double>(outputTexture->GetResolutionX());
 		double imageHeight = static_cast<double>(outputTexture->GetResolutionY());
 
-		position = cameraPosition;
-		auto focalLength = 1.0;
+		position = lookfrom;
+		
+		double aspect_ratio = imageWidth / imageHeight;
+		double focalLength = (lookfrom - lookat).length();
 
 		// Determine viewport dimensions.
-		double aspect_ratio = imageWidth / imageHeight;
-		double viewportHeight = 2.0;
+		double theta = Deg2Rad(vfov);
+		double h = tan(theta / 2);
+		double viewportHeight = 2 * h * focalLength;
 		double viewportWidth = viewportHeight * aspect_ratio;
 
+		// Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+		w = (lookfrom - lookat).normalized();
+		u = cross(vup, w).normalized();
+		v = cross(w, u);
+
 		// Calculate the vectors across the horizontal and down the vertical viewport edges.
-		Vec3 viewportU = Vec3(viewportWidth, 0, 0);
-		Vec3 viewportV = Vec3(0, -viewportHeight, 0);
+		Vec3 viewportU = viewportWidth * u;		// Vector across viewport horizontal edge
+		Vec3 viewportV = viewportHeight * -v;	// Vector down viewport vertical edge
 
 		// Calculate the horizontal and vertical delta vectors from pixel to pixel.
 		pixelDeltaU = viewportU / imageWidth;
 		pixelDeltaV = viewportV / imageHeight;
 
 		// Calculate the location of the upper left pixel.
-		Vec3 viewportTopLeft = position - Vec3(0, 0, focalLength) - (viewportU / 2) - (viewportV / 2);
+		Vec3 viewportTopLeft = position - (focalLength * w) - (viewportU / 2) - (viewportV / 2);
 		pixelTopLeft = viewportTopLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
 	}
 
