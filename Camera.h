@@ -38,6 +38,11 @@ public:
 				resultColor /= static_cast<double>(samplesPerPixel);
 				// clamp color gammut
 				resultColor = Interval(0, 1).clamp(resultColor);
+				// linear to gamma color conversion
+				double gamma = 1.0 / 2.0;
+				resultColor.e[0] = pow(resultColor.e[0], gamma);
+				resultColor.e[1] = pow(resultColor.e[1], gamma);
+				resultColor.e[2] = pow(resultColor.e[2], gamma);
 
 				outputTexture->SetPixel(x, y, resultColor);
 			}
@@ -107,7 +112,7 @@ private:
 			return Color(0, 0, 0);
 
 		if (world.Hit(r, Interval(0.001, infinity), rec)) {
-			Vec3 bounceDir = RandomPointOnUnitHemisphere(rec.normal);
+			Vec3 bounceDir = rec.normal + RandomPointOnUnitSphere();
 			return 0.5 * RayColor(Ray(rec.position, bounceDir), depth-1, world);
 		}
 
