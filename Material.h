@@ -66,7 +66,7 @@ public:
 		bool cannot_refract = refractionRatio * sinTheta > 1.0;
 		Vec3 outDirection;
 
-		if (cannot_refract) 
+		if (cannot_refract || reflectance(cosTheta, refractionRatio) > Random01())
 			outDirection = reflect(unitRayDir, rec.normal);
 		else 
 			outDirection = refract(unitRayDir, rec.normal, refractionRatio);
@@ -77,4 +77,11 @@ public:
 
 private:
 	double IOR; // index of refraction
+
+	static double reflectance(double cosine, double ref_idx) {
+		// Use Schlick's approximation for reflectance.
+		auto r0 = (1 - ref_idx) / (1 + ref_idx);
+		r0 = r0 * r0;
+		return r0 + (1 - r0) * pow((1 - cosine), 5);
+	}
 };
