@@ -32,5 +32,20 @@
     <ClInclude Include="Ray.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
+    <ClInclude Include="Hittable.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HittableList.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RTWeekend.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Interval.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
