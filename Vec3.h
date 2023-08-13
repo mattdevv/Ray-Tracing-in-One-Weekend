@@ -54,6 +54,14 @@ public:
     void normalize() {
         *this *= 1 / this->length();
     }
+
+    static Vec3 random() {
+        return Vec3(Random01(), Random01(), Random01());
+    }
+
+    static Vec3 random(double min, double max) {
+        return Vec3(RandomRange(min, max), RandomRange(min, max), RandomRange(min, max));
+    }
 };
 
 // point3 is just an alias for vec3, but useful for geometric clarity in the code.
@@ -112,4 +120,25 @@ inline Vec3 cross(const Vec3& u, const Vec3& v) {
 
 inline Vec3 normalize(const Vec3 v) {
     return v / v.length();
+}
+
+inline Vec3 RandomPointInsideUnitSphere() {
+    Vec3 p;
+
+    do { p = Vec3::random(-1, 1); } 
+    while (p.lengthSquared() > 1);
+
+    return p;
+}
+
+inline Vec3 RandomPointOnUnitSphere() {
+    return RandomPointInsideUnitSphere().normalized();
+}
+
+inline Vec3 RandomPointOnUnitHemisphere(const Vec3& normal) {
+    Vec3 onSphere = RandomPointOnUnitSphere();
+    if (dot(onSphere, normal) > 0.0) // Check if in same hemisphere as the normal
+        return onSphere;
+    else
+        return -onSphere;
 }

@@ -31,8 +31,8 @@ int main()
 	STBI_DISABLE_PNG_COMPRESSION
 
 	// initialise output image
-	int imageWidth = 1920;
-	int imageHeight = 1080;
+	int imageWidth = 1280;
+	int imageHeight = 720;
 	auto outputTexture = shared_ptr<Texture>(new Texture(imageWidth, imageHeight));
 
 	HittableList world;
@@ -41,6 +41,8 @@ int main()
 	world.add(make_shared<Sphere>(Point3(0, -100.5, -1), 100));
 
 	Camera camera(outputTexture);
+	camera.samplesPerPixel = 20;
+	camera.maxRayBounces = 50;
 	camera.Render(world);
 	
 	outputTexture->SaveToFile("result.png");

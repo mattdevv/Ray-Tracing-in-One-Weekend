@@ -10,6 +10,7 @@
 class Camera {
 public:
 	int samplesPerPixel = 10;
+	int maxRayBounces = 10;   // Maximum number of ray bounces into scene
 
 	Camera(shared_ptr<Texture> _outputTexture) : outputTexture(_outputTexture) { }
 
@@ -30,7 +31,7 @@ public:
 				for (int i = 0; i < samplesPerPixel; i++)
 				{
 					Ray r = GetRay(x, y);
-					resultColor += RayColor(r, world);
+					resultColor += RayColor(r, maxRayBounces, world);
 				}
 
 				// average samples
@@ -98,10 +99,16 @@ private:
 		return (px * pixelDeltaU) + (py * pixelDeltaV);
 	}
 
-	Color RayColor(const Ray& r, const Hittable& world) {
+	Color RayColor(const Ray& r, int depth, const Hittable& world) {
 		HitPoint rec;
-		if (world.Hit(r, Interval(0, infinity), rec)) {
-			return (rec.normal * 0.5) + 0.5;
+
+		// If we've exceeded the ray bounce limit, no more light is gathered.
+		if (depth <= 0)
+			return Color(0, 0, 0);
+
+		if (world.Hit(r, Interval(0.001, infinity), rec)) {
+			Vec3 bounceDir = RandomPointOnUnitHemisphere(rec.normal);
+			return 0.5 * RayColor(Ray(rec.position, bounceDir), depth-1, world);
 		}
 
 		Vec3 unit_direction = r.direction.normalized();
