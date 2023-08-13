@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 
@@ -24,6 +25,16 @@ inline double Deg2Rad(double degrees) {
 
 inline double Rad2Deg(double radians) {
     return radians * 180.0 / pi;
+}
+
+inline double Random01() {
+    // Returns a random real in [0,1).
+    return rand() / (RAND_MAX + 1.0);
+}
+
+inline double RandomRange(double min, double max) {
+    // Returns a random real in [min,max).
+    return Random01() * (max - min) + min;
 }
 
 // Common Headers

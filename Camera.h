@@ -9,6 +9,8 @@
 
 class Camera {
 public:
+	int samplesPerPixel = 10;
+
 	Camera(shared_ptr<Texture> _outputTexture) : outputTexture(_outputTexture) { }
 
 	void Render(const Hittable& world) {
@@ -23,12 +25,20 @@ public:
 
 			for (int x = 0; x < maxX; x++)
 			{
-				Vec3 pixelPosition = pixelTopLeft + (x * pixelDeltaU) + (y * pixelDeltaV);
-				Vec3 pixelDirection = pixelPosition - position;
+				Color resultColor(0, 0, 0);
 
-				Ray r(position, pixelDirection);
+				for (int i = 0; i < samplesPerPixel; i++)
+				{
+					Ray r = GetRay(x, y);
+					resultColor += RayColor(r, world);
+				}
 
-				outputTexture->SetPixel(x, y, RayColor(r, world));
+				// average samples
+				resultColor /= static_cast<double>(samplesPerPixel);
+				// clamp color gammut
+				resultColor = Interval(0, 1).clamp(resultColor);
+
+				outputTexture->SetPixel(x, y, resultColor);
 			}
 		}
 
@@ -67,6 +77,25 @@ private:
 		// Calculate the location of the upper left pixel.
 		Vec3 viewportTopLeft = position - Vec3(0, 0, focalLength) - (viewportU / 2) - (viewportV / 2);
 		pixelTopLeft = viewportTopLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
+	}
+
+	Ray GetRay(int i, int j) const {
+		// Get a randomly sampled camera ray for the pixel at location i,j.
+
+		Vec3 pixelCenter = pixelTopLeft + (i * pixelDeltaU) + (j * pixelDeltaV);
+		Vec3 pixelSample = pixelCenter + pixelRandomOffset();
+
+		Point3 rayOrigin = position;
+		Vec3 rayDirection = pixelSample - rayOrigin;
+
+		return Ray(rayOrigin, rayDirection);
+	}
+
+	Vec3 pixelRandomOffset() const {
+		// Returns a random offset within a pixel square
+		double px = RandomRange(-0.5, 0.5);
+		double py = RandomRange(-0.5, 0.5);
+		return (px * pixelDeltaU) + (py * pixelDeltaV);
 	}
 
 	Color RayColor(const Ray& r, const Hittable& world) {
