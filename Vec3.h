@@ -51,13 +51,14 @@ public:
     }
 
     Vec3 normalized() {
-        return Vec3(e[0], e[1], e[2]) * (1 / this->length());
+        double invLength = (1 / this->length());
+        return Vec3(e[0] * invLength, e[1] * invLength, e[2] * invLength);
     }
 };
 
 // point3 is just an alias for vec3, but useful for geometric clarity in the code.
-using point3 = Vec3;
-
+using Point3 = Vec3;
+using Color = Vec3;
 
 // Vector Utility Functions
 
