@@ -50,3 +50,22 @@ private:
 	Color albedo;
 	double fuzz;
 };
+
+class Dielectric : public Material {
+public:
+	Dielectric(double _IOR) : IOR(_IOR) {}
+
+	bool scatter(const Ray& inRay, const HitPoint& rec, Color& attenuation, Ray& outRay) const override {
+		attenuation = Color(1, 1, 1);
+		double refractionRatio = rec.isFrontFace ? (1.0 / IOR) : IOR;
+
+		Vec3 unitRayDir = inRay.direction.normalized();
+		Vec3 refractedDir = refract(unitRayDir, rec.normal, refractionRatio);
+
+		outRay = Ray(rec.position, refractedDir);
+		return true;
+	}
+
+private:
+	double IOR; // index of refraction
+};
