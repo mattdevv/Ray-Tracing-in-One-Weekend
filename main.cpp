@@ -53,7 +53,8 @@ int main()
 	camera.maxRayBounces = 50;
 	camera.Render(world);
 	
-	outputTexture->SaveToFile("result.png");
+	if (!outputTexture->SaveToFile("output.png"))
+		return 1;
 
 	return 0;
 }
