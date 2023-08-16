@@ -11,6 +11,7 @@
 using std::shared_ptr;
 using std::make_shared;
 using std::sqrt;
+using std::fmod;
 
 // Constants
 

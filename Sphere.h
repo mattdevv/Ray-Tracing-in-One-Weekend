@@ -21,7 +21,7 @@ public:
 		double sqrtd = sqrt(discriminant);
 
 		// Find the nearest root that lies in the acceptable range.
-		double root = (-half_b - sqrt(discriminant)) / a;
+		double root = (-half_b - sqrtd) / a;
 		if (!rayLengthLimits.surrounds(root)) {
 			// check second root
 			root = (-half_b + sqrtd) / a; 

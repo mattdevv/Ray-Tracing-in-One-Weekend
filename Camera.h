@@ -6,7 +6,40 @@
 #include "Texture.h"
 #include "PixelColor.h"
 
+#include <chrono>
+
+using namespace std::chrono;
+
 class Material;
+
+std::string NanoToHHMMSS(nanoseconds time)
+{
+	const auto hrs = duration_cast<hours>(time);
+	const auto mins = duration_cast<minutes>(time - hrs);
+	const auto secs = duration_cast<seconds>(time - hrs - mins);
+
+	int hrs_i = hrs.count();
+	int mins_i = mins.count();
+	int secs_i = secs.count();
+
+	if (hrs_i >= 100)
+		return "Err: OoS";
+
+	std::string output(8, '\0');
+
+	output[0] = '0' + (hrs_i / 10);
+	output[1] = '0' + (hrs_i % 10);
+	output[2] = ':';
+
+	output[3] = '0' + (mins_i / 10);
+	output[4] = '0' + (mins_i % 10);
+	output[5] = ':';
+
+	output[6] = '0' + (secs_i / 10);
+	output[7] = '0' + (secs_i % 10);
+
+	return output;
+}
 
 class Camera {
 public:
@@ -29,9 +62,11 @@ public:
 		int maxX = outputTexture->GetResolutionX();
 		int maxY = outputTexture->GetResolutionY();
 
+		nanoseconds totalTime_ns = nanoseconds::zero();
+
 		for (int y = 0; y < maxY; y++)
 		{
-			std::clog << "\rScanlines remaining: " << (maxY - y) << ' ' << std::flush;
+			high_resolution_clock::time_point t_start = high_resolution_clock::now();
 
 			for (int x = 0; x < maxX; x++)
 			{
@@ -55,9 +90,22 @@ public:
 
 				outputTexture->SetPixel(x, y, resultColor);
 			}
+
+			high_resolution_clock::time_point t_end = high_resolution_clock::now();
+			totalTime_ns += t_end - t_start;
+
+			int completedLines = y + 1;
+			int remainingLines = maxY - completedLines;
+
+			const auto estimateTime = totalTime_ns * remainingLines / completedLines;
+			const auto hrs = duration_cast<hours>(estimateTime);
+			const auto mins = duration_cast<minutes>(estimateTime - hrs);
+			const auto secs = duration_cast<seconds>(estimateTime - hrs - mins);
+
+			std::clog << "\rScanlines remaining: " << remainingLines << "   elapsed time: " << NanoToHHMMSS(totalTime_ns) << "   estimated time: " << NanoToHHMMSS(estimateTime) << "     " << std::flush;
 		}
 
-		std::clog << "\rDone.                 \n";
+		std::clog << "\rDone in " << NanoToHHMMSS(totalTime_ns) << std::string(64, ' ') << "\n";
 	}
 
 private:
@@ -132,7 +180,7 @@ private:
 
 	Point3 defocusDiskSample() const {
 		// Returns a random point in the camera defocus disk.
-		auto p = random_in_unit_disk();
+		Vec3 p = random_in_unit_disk();
 		return position + (p[0] * defocusDiskU) + (p[1] * defocusDiskV);
 	}
 
