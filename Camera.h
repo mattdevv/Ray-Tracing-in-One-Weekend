@@ -66,33 +66,7 @@ public:
 
 		for (int y = 0; y < maxY; y++)
 		{
-			high_resolution_clock::time_point t_start = high_resolution_clock::now();
-
-			for (int x = 0; x < maxX; x++)
-			{
-				Color resultColor(0, 0, 0);
-
-				for (int i = 0; i < samplesPerPixel; i++)
-				{
-					Ray r = GetRay(x, y);
-					resultColor += RayColor(r, maxRayBounces, world);
-				}
-
-				// average samples
-				resultColor /= static_cast<double>(samplesPerPixel);
-				// clamp color gammut
-				resultColor = Interval(0, 1).clamp(resultColor);
-				// linear to gamma color conversion
-				double gamma = 1.0 / 2.0;
-				resultColor.e[0] = pow(resultColor.e[0], gamma);
-				resultColor.e[1] = pow(resultColor.e[1], gamma);
-				resultColor.e[2] = pow(resultColor.e[2], gamma);
-
-				outputTexture->SetPixel(x, y, resultColor);
-			}
-
-			high_resolution_clock::time_point t_end = high_resolution_clock::now();
-			totalTime_ns += t_end - t_start;
+			totalTime_ns += RenderRow(y, maxX, world);
 
 			int completedLines = y + 1;
 			int remainingLines = maxY - completedLines;
@@ -155,6 +129,39 @@ private:
 		auto defocusRadius = focusDist * tan(Deg2Rad(defocusAngle / 2));
 		defocusDiskU = u * defocusRadius;
 		defocusDiskV = v * defocusRadius;
+	}
+
+	nanoseconds RenderRow(const int rowIndex, int rowWidth, const Hittable& world)
+	{
+		const int y = rowIndex;
+
+		high_resolution_clock::time_point t_start = high_resolution_clock::now();
+
+		for (int x = 0; x < rowWidth; x++)
+		{
+			Color resultColor(0, 0, 0);
+
+			for (int i = 0; i < samplesPerPixel; i++)
+			{
+				Ray r = GetRay(x, y);
+				resultColor += RayColor(r, maxRayBounces, world);
+			}
+
+			// average samples
+			resultColor /= static_cast<double>(samplesPerPixel);
+			// clamp color gammut
+			resultColor = Interval(0, 1).clamp(resultColor);
+			// linear to gamma color conversion
+			double gamma = 1.0 / 2.0;
+			resultColor.e[0] = pow(resultColor.e[0], gamma);
+			resultColor.e[1] = pow(resultColor.e[1], gamma);
+			resultColor.e[2] = pow(resultColor.e[2], gamma);
+
+			outputTexture->SetPixel(x, y, resultColor);
+		}
+
+		high_resolution_clock::time_point t_end = high_resolution_clock::now();
+		return t_end - t_start;
 	}
 
 	Ray GetRay(int i, int j) const {
