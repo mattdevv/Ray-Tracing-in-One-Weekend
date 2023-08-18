@@ -7,6 +7,10 @@
 #include "PixelColor.h"
 
 #include <chrono>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 using namespace std::chrono;
 
@@ -62,24 +66,58 @@ public:
 		int maxX = outputTexture->GetResolutionX();
 		int maxY = outputTexture->GetResolutionY();
 
-		nanoseconds totalTime_ns = nanoseconds::zero();
+		totalThreadTime_ns = nanoseconds::zero();
+		completedRows = 0;
 
-		for (int y = 0; y < maxY; y++)
-		{
-			totalTime_ns += RenderRow(y, maxX, world);
+		auto startRenderTime_ns = high_resolution_clock::now();
 
-			int completedLines = y + 1;
+		const auto processor_count = std::thread::hardware_concurrency();
+		std::thread* workers = new std::thread[processor_count];
+
+		std::atomic_uint32_t rowCounter(0);
+		for (auto i = 0; i < processor_count; i++)
+			workers[i] = std::thread(&Camera::RenderRow, this, std::ref(rowCounter), maxY, maxX, std::ref(world));
+
+		// update console as rows are completed
+		while (true) {
+			nanoseconds partialTime = totalThreadTime_ns;
+			uint32_t partialRows = completedRows;
+
+			{
+				// lock before accessing global timer
+				std::unique_lock<std::mutex> lk(timer_mutex);
+
+				// break out of update loop if rendering has finished
+				if (completedRows >= maxY)
+					break;
+
+				// wait for a row to finish
+				cv.wait(lk);
+				// clone timer state
+				partialTime = totalThreadTime_ns;
+				partialRows = completedRows;
+			}
+			
+			int completedLines = partialRows;
 			int remainingLines = maxY - completedLines;
+			const auto averageLineTime = partialTime / partialRows;
 
-			const auto estimateTime = totalTime_ns * remainingLines / completedLines;
+			// update console
+			const auto estimateTime = averageLineTime * remainingLines / processor_count;
 			const auto hrs = duration_cast<hours>(estimateTime);
 			const auto mins = duration_cast<minutes>(estimateTime - hrs);
 			const auto secs = duration_cast<seconds>(estimateTime - hrs - mins);
-
-			std::clog << "\rScanlines remaining: " << remainingLines << "   elapsed time: " << NanoToHHMMSS(totalTime_ns) << "   estimated time: " << NanoToHHMMSS(estimateTime) << "     " << std::flush;
+			std::clog << "\rScanlines remaining: " << remainingLines << "   estimated remaining time: " << NanoToHHMMSS(estimateTime) << "     " << std::flush;
 		}
 
-		std::clog << "\rDone in " << NanoToHHMMSS(totalTime_ns) << std::string(64, ' ') << "\n";
+		// destroy threads
+		for (auto i = 0; i < processor_count; i++)
+			workers[i].join();
+		delete[] workers;
+
+		// write final state
+		auto endRenderTime_ns = high_resolution_clock::now();
+		std::clog << "\rDone in " << NanoToHHMMSS(endRenderTime_ns - startRenderTime_ns) << std::string(64, ' ') << "\n";
 	}
 
 private:
@@ -91,6 +129,11 @@ private:
 	Vec3   u, v, w;			// Camera frame basis vectors
 	Vec3   defocusDiskU;	// Defocus disk horizontal radius
 	Vec3   defocusDiskV;	// Defocus disk vertical radius
+
+	nanoseconds totalThreadTime_ns;
+	uint32_t completedRows;
+	std::mutex timer_mutex;
+	std::condition_variable cv;
 
 	shared_ptr<Texture> outputTexture;
 
@@ -131,37 +174,52 @@ private:
 		defocusDiskV = v * defocusRadius;
 	}
 
-	nanoseconds RenderRow(const int rowIndex, int rowWidth, const Hittable& world)
+	void RenderRow(std::atomic_uint32_t& rowCounter, const int maxY, const int rowWidth, const Hittable& world)
 	{
-		const int y = rowIndex;
+		while (true) {
+			// sequentially claim rows
+			const int y = rowCounter.fetch_add(1);
+			// stop when past end of image
+			if (y >= maxY)
+				return;
 
-		high_resolution_clock::time_point t_start = high_resolution_clock::now();
+			high_resolution_clock::time_point t_start = high_resolution_clock::now();
 
-		for (int x = 0; x < rowWidth; x++)
-		{
-			Color resultColor(0, 0, 0);
-
-			for (int i = 0; i < samplesPerPixel; i++)
+			for (int x = 0; x < rowWidth; x++)
 			{
-				Ray r = GetRay(x, y);
-				resultColor += RayColor(r, maxRayBounces, world);
+				Color resultColor(0, 0, 0);
+
+				for (int i = 0; i < samplesPerPixel; i++)
+				{
+					Ray r = GetRay(x, y);
+					resultColor += RayColor(r, maxRayBounces, world);
+				}
+
+				// average samples
+				resultColor /= static_cast<double>(samplesPerPixel);
+				// clamp color gammut
+				resultColor = Interval(0, 1).clamp(resultColor);
+				// linear to gamma color conversion
+				double gamma = 1.0 / 2.0;
+				resultColor.e[0] = pow(resultColor.e[0], gamma);
+				resultColor.e[1] = pow(resultColor.e[1], gamma);
+				resultColor.e[2] = pow(resultColor.e[2], gamma);
+
+				outputTexture->SetPixel(x, y, resultColor);
 			}
 
-			// average samples
-			resultColor /= static_cast<double>(samplesPerPixel);
-			// clamp color gammut
-			resultColor = Interval(0, 1).clamp(resultColor);
-			// linear to gamma color conversion
-			double gamma = 1.0 / 2.0;
-			resultColor.e[0] = pow(resultColor.e[0], gamma);
-			resultColor.e[1] = pow(resultColor.e[1], gamma);
-			resultColor.e[2] = pow(resultColor.e[2], gamma);
+			high_resolution_clock::time_point t_end = high_resolution_clock::now();
+			nanoseconds rowTime = t_end - t_start;
 
-			outputTexture->SetPixel(x, y, resultColor);
+			{
+				// thread safe update to timer
+				std::unique_lock<std::mutex> lk(timer_mutex);
+				totalThreadTime_ns += rowTime;
+				completedRows++;
+			}
+			// notify timer has changed
+			cv.notify_all();
 		}
-
-		high_resolution_clock::time_point t_end = high_resolution_clock::now();
-		return t_end - t_start;
 	}
 
 	Ray GetRay(int i, int j) const {
