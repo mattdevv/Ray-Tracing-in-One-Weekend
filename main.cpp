@@ -64,7 +64,7 @@ int main()
 				}
 				else {
 					// glass
-					sphere_material = make_shared<Dielectric>(1.5);
+					sphere_material = make_shared<Dielectric>(1.5, 5 * HSV(Random01(), 1, 1));
 					world.add(make_shared<Sphere>(center, 0.2, sphere_material));
 				}
 			}

@@ -53,10 +53,20 @@ private:
 
 class Dielectric : public Material {
 public:
-	Dielectric(double _IOR) : IOR(_IOR) {}
+	Dielectric(double _IOR) : IOR(_IOR), abspCoeff(0,0,0) {}
+	Dielectric(double _IOR, const Color& absorption) : IOR(_IOR), abspCoeff(absorption) {}
 
 	bool scatter(const Ray& inRay, const HitPoint& rec, Color& attenuation, Ray& outRay) const override {
-		attenuation = Color(1, 1, 1);
+		if (rec.isFrontFace) {
+			// no absorption
+			attenuation = Color(1, 1, 1);
+		}
+		else {
+			// Beer-Lambert absorption occurs over ray's length
+			double rayLength = (inRay.origin - rec.position).length();
+			attenuation = absorption(rayLength);
+		}
+		
 		double refractionRatio = rec.isFrontFace ? (1.0 / IOR) : IOR;
 
 		Vec3 unitRayDir = inRay.direction.normalized();
@@ -77,6 +87,15 @@ public:
 
 private:
 	double IOR; // index of refraction
+	Color abspCoeff;
+
+	Color absorption(double rayLength) const {
+		double R = exp(-abspCoeff.e[0] * rayLength);
+		double G = exp(-abspCoeff.e[1] * rayLength);
+		double B = exp(-abspCoeff.e[2] * rayLength);
+
+		return  Color(R, G, B);
+	}
 
 	static double reflectance(double cosine, double ref_idx) {
 		// Use Schlick's approximation for reflectance.
